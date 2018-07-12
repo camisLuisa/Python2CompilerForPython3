@@ -5,7 +5,14 @@ var tree = require("tree");
 %lex
 %%
 (" "|\n)+                   /* skip whitespace */
+"class"               return 'class'
 "print"               return 'print'
+"raiseIOError"        return 'RE'
+"try"                 return 'try'
+"err"                 return 'err'
+"exception ErrorName" return 'eE'
+"Raw_input"           return 'Ri'
+"input"               return 'input'
 [0-9]+                return 'NUMBER'
 "*"                   return '*'
 "/"                   return '/'
@@ -33,10 +40,10 @@ var tree = require("tree");
 "bool"                return 'bool'
 "type"                return 'type'
 "if"                  return 'if'
-"Class"               return 'Class'
 "def"                 return 'def' 
 <<EOF>>               return 'EOF'
-[a-z]+                return 'ID'
+"º"                   return 'ASPAS'
+[a-z | _]+                return 'ID'
 .                     return 'INVALID'
 
 /lex
@@ -51,20 +58,26 @@ var tree = require("tree");
 %start inicio
 %% /* language grammar */
 inicio : comando EOF { return $1; }
+       |comandoClasse EOF {return $1;}
        ;
 
 comandoClasse
-    : "Class" ID "{" comando "}" ";"  {$$ = new tree.Classe($2,$4);}
+    : "class" ID "{" comando "}" ";"  {$$ = new tree.Classe($2,$4);}
    ;
 
 comando
-    : "def" ID "("p1 "," p2 ")" "{" comando "}" ";" {$$ = new tree.Metodo($2,$4,$6,$9);}
+    : "def" ID"("ID","ID")" "{" comando "}" ";" {$$ = new tree.Metodo($2,$4,$6,$9);}
     | ID "=" e ";" {$$ = new tree.Atrib($1,$3);}
     | "type" "(" ID "=" t ")" ";"{$$ = new tree.Type($1,$3);}
-    | "print" e ";" {$$ = new tree.Print($2);}
-    |"if" e "{" e "}" ";" {$$ = new tree.Compare($2,$4);}
-    |"if" e "{" e "}" "else" "{" e "}" ";" {$$ = new tree.Compare ($2,$4,$8);}
+    | "print" ASPAS ID  ASPAS ";"  {$$ = new tree.Print($3);}
+    | "RE" "," ASPAS ID ASPAS ";"  {$$ = new tree.Error($4);}
+    | "int" ID ";" {$$ = new tree.Num($2);}
+    | ID "=" type "(" input "(" ID ")" ")" ";" {$$ = new tree.RI($1,$3,$7,$5);}
+    | "try" ":" "{" ID "}" "{" eE "," err ":"  "}" print err ";" {$$ = new tree.Excecao($4);}
+    |"if" e "{" e "}" ";" {$$ = new tree.ComparaIf($2,$4);}
+    |"if" e "{" e "}" "else" "{" e "}" ";" {$$ = new tree.ComparaIfElse ($2,$4,$8);}
     |"for" ID "in" "range()"
+    |{ $$ = null; }  
     ;
   e
     : e "+" e {$$ = new tree.Op("+",$1,$3);}
@@ -81,12 +94,12 @@ comando
     | e "and" e {$$ = new tree.Op("and",$1,$3);}
     | e "or" e {$$ = new tree.Op("or",$1,$3);}
     | "(" e ")" {$$ = $2;}
-    | NUMBER {$$ = new tree.Num(Number(yytext));}
+    | NUMBER {$$ = new tree.Num(yytext);}
     | ID {$$ = new tree.Id(yytext); }
     ;
   decl
     : Type Id
     ;
   type
-    : Int | Bool | String
+    : int | bool | str
     ;

@@ -1,6 +1,0 @@
-class GeraCod {
-
-  printCod(){
-    
-  }
-}
